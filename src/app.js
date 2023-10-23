@@ -67,9 +67,9 @@ app.get("/:id/authenticate", async (req, res) => {
         res.status(400).send(`id "${id}" does not exists`);
         return;
     }
-    console.log(`"${user.name}" is trying to authenticate for "${scopeName}"`);
-
+    
     // Check if user has scope.
+    console.log(`"${user.name}" is trying to authenticate for "${scopeName}"`);
     const scope = user.scopes.find((scope) => (scope.scope === scopeName));
     if(scope == null) {
         console.log(`"${user.name}" does not have access to "${scopeName}".`);
@@ -182,12 +182,27 @@ app.listen(PORT, () => {
 
     const networkInterfaces = os.networkInterfaces();
     console.log(`Possible urls: `)
-    networkInterfaces["Wi-Fi"].forEach((networkInfo) => {
-        if(networkInfo.family === "IPv4") {
-            console.log(`\thttp://${networkInfo.address}:${PORT}/users`);
-        }
-    });
+    if("Wi-Fi" in networkInterfaces){
+        networkInterfaces["Wi-Fi"].forEach((networkInfo) => {
+            if(networkInfo.family === "IPv4") {
+                console.log(`\thttp://${networkInfo.address}:${PORT}/users`);
+            }
+        });
+    }
 
     console.log(`\thttp://localhost:${PORT}/users`);
     console.log(`\thttp://127.0.0.1:${PORT}/users`);
+
+    console.log("Create user: ");
+    console.log(`\thttp://localhost:${PORT}/create-user?name=[name]`);
+    console.log(`\thttp://127.0.0.1:${PORT}/create-user?name=[name]`);
+
+    console.log("Update scopes: ");
+    console.log(`\thttp://localhost:${PORT}/:id/update-scopes?scope=[scope name]&expires_in=[days]`);
+    console.log(`\thttp://127.0.0.1:${PORT}/:id/update-scopes?scope=[scope name]&expires_in=[days]`);
+
+    console.log("Authenticate scope: ");
+    console.log(`\thttp://localhost:${PORT}/:id/authenticate?scope=[scope name]`);
+    console.log(`\thttp://127.0.0.1:${PORT}/:id/authenticate?scope=[scope name]`);
+
 });
