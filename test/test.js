@@ -15,7 +15,7 @@ console.log(await Database.createUserWithScopes("lmnop", "billy", [
 ]));
 console.log(await Database.createUserWithScopes("qrst", "bruh", []));
 
-console.log(await DatabaseTest.getAllUsers());
+console.log(await Database.getAllUsers());
 
 console.log(await Database.findUserWithScopes("lmnop", ["door-lock"]));
 console.log(await Database.findUsersWithExpiredScopes());
