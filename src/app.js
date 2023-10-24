@@ -4,18 +4,22 @@ import { Database, Expires } from "./database.js";
 import os from "os";
 
 
+const DATABASE_URL = process.env.DATABASE_URL ?? "mongodb://127.0.0.1:27017/";
 const PORT = process.env.PORT ?? 1234;
 const BYTES_PER_ID = 48; // 48 bytes per ID seems reasonable. 2^48 = 1.84e19
 const MAX_NAME_LENGTH = 40;
 const MAX_SCOPE_LENGTH = 40;
 
-console.log(`PORT: ${PORT}`);
-console.log(`BYTES_PER_ID: ${BYTES_PER_ID}`);
-console.log(`MAX_SCOPE_LENGTH: ${MAX_SCOPE_LENGTH}`);
-console.log(`MAX_NAME_LENGTH: ${MAX_NAME_LENGTH}`);
+console.log(`PORT="${PORT}"`);
+console.log(`BYTES_PER_ID="${BYTES_PER_ID}"`);
+console.log(`MAX_SCOPE_LENGTH="${MAX_SCOPE_LENGTH}"`);
+console.log(`MAX_NAME_LENGTH="${MAX_NAME_LENGTH}"`);
+console.log(`DATABASE_URL="${DATABASE_URL}"`);
+
 const app = express();
 
-
+const database = new Database(DATABASE_URL);
+database.connect();
 
 /**
  * Create and return a base64url encoded id with BYTES_PER_ID bytes
@@ -61,7 +65,7 @@ app.get("/:id/authenticate", async (req, res) => {
 
     // Get user
     const id = req.params.id;
-    const user = await Database.getUser(id);
+    const user = await database.getUser(id);
     if(user == null) {
         console.log(`id "${id}" does not exists`);
         res.status(400).send(`id "${id}" does not exists`);
@@ -110,7 +114,7 @@ app.use("/create-user", (req, res) => {
     console.log(`Creating user "${name}" with id "${id}"`);
 
     // Create user with empty scopes
-    return Database.createUserWithScopes(id, name, [])
+    return database.createUserWithScopes(id, name, [])
         .then(() => {
             res.status(201).send(id);
         })
@@ -152,7 +156,7 @@ app.use("/:id/update-scope", async (req, res) => {
 
     // Get user
     const id = req.params.id;
-    const user = await Database.getUser(id);
+    const user = await database.getUser(id);
     if(user == null) {
         console.log(`id "${id}" does not exists`);
         res.status(400).send(`id "${id}" does not exists`);
@@ -161,7 +165,7 @@ app.use("/:id/update-scope", async (req, res) => {
 
     // Update scopes of user.
     console.log(`Updating "${user.name}"'s scopes with "${scope}" that will expire in "${expiresIn}" days`);
-    await Database.updateScopesOfUser(id, [ {scope: scope, expires_at: Expires.after(expiresIn) } ])
+    await database.updateScopesOfUser(id, [ {scope: scope, expires_at: Expires.after(expiresIn) } ])
         .then(() => {
             res.status(200).send(id);
         })
@@ -173,7 +177,7 @@ app.use("/:id/update-scope", async (req, res) => {
 
 
 app.get("/users", async (req, res) => {
-    res.status(200).json(await Database.getAllUsers());
+    res.status(200).json(await database.getAllUsers());
 });
 
 

@@ -1,20 +1,5 @@
 import { MongoClient } from "mongodb";
 
-
-const DATABASE_URL = process.env.DATABASE_URL ?? "mongodb://127.0.0.1:27017/";
-
-const client = new MongoClient(DATABASE_URL);
-
-console.log(`Database is located at "${DATABASE_URL}"`)
-console.log("Connecting to the database...");
-await client.connect();
-console.log("Connected to the database");
-
-// RFID database, users collections.
-const db = client.db("rfid");
-const users = db.collection("users");
-
-
 /**
  * Return a expiration date that is tomorrow at midnight.
  * @returns 
@@ -72,10 +57,21 @@ function never() {
  * @typedef {{ _id: string, name: string, scopes: [Scope] }} User
  */
 
-/**
- * A collection of queries and operations on the database.
- */
-export const Database  = {
+
+export class Database {
+    /**
+     * 
+     * @param {string} databaseUrl 
+     */
+    constructor(databaseUrl) {
+        this.client = new MongoClient(databaseUrl);
+    }
+    async connect() {
+        await this.client.connect();
+        this.db = this.client.db("rfid");
+        this.users = this.db.collection("users");
+        this.logs = this.db.collection("logs");
+    }
     /**
      * Find all users in the database that have at least one scope that is expired.
      * 
@@ -83,7 +79,7 @@ export const Database  = {
      */
     async findUsersWithExpiredScopes() {
         const now = new Date();
-        return await users.find({
+        return await this.users.find({
             scopes: {
                 $elemMatch: {
                     expires_at: {
@@ -92,7 +88,7 @@ export const Database  = {
                 }
             }
         }).toArray();
-    },
+    }
     /**
      * Find if a user has a given scopes. 
      * If the user doesn't exist or the user does not have the all the scopes given or the found scope has already expired, this function returns null.
@@ -119,8 +115,8 @@ export const Database  = {
             }
         };
 
-        return await users.findOne(query);
-    },
+        return await this.users.findOne(query);
+    }
     /**
      * Find if a user has a given scopes. If the user doesn't exist or the user does not have the all the scopes given, this function returns null.
      * This function does not check if a scope has expired yet.
@@ -141,8 +137,8 @@ export const Database  = {
             }
         };
 
-        return await users.findOne(query);
-    },
+        return await this.users.findOne(query);
+    }
     /**
      * Create a user with a name and scopes.
      * 
@@ -157,7 +153,7 @@ export const Database  = {
             scopes: scopes,
         });
         return result;
-    },
+    }
     /**
      * Remove the scope of a given user.
      * 
@@ -166,8 +162,8 @@ export const Database  = {
      * @returns 
      */
     async removeScopesFromUser(id, scopes = []) {
-        return await users.updateOne({ _id: id }, { $pull: { scopes: {scope: { $in: scopes } } } });
-    },
+        return await this.users.updateOne({ _id: id }, { $pull: { scopes: {scope: { $in: scopes } } } });
+    }
     /**
      * Updates the scopes of a given user. If the user already has a scope, this will overwrite that scope.
      * If the user doesn't already have a scope, the new scope will be added.
@@ -178,13 +174,13 @@ export const Database  = {
      */
     async updateScopesOfUser(id, scopes = []) {
         const scopeNames = scopes.map((scope) => scope.scope);
-        const pullResult = await users.updateOne({ _id: id }, { $pull: { scopes: {scope: { $in: scopeNames } } } });
-        const pushResult = await users.updateOne({ _id: id }, { $push: { scopes: { $each: scopes } } });
+        const pullResult = await this.users.updateOne({ _id: id }, { $pull: { scopes: {scope: { $in: scopeNames } } } });
+        const pushResult = await this.users.updateOne({ _id: id }, { $push: { scopes: { $each: scopes } } });
         return {
             pull: pullResult,
             push: pushResult,
         };
-    },
+    }
     /**
      * Sets the scopes of a given user. Overwrites all scopes the user already has.
      * 
@@ -193,8 +189,8 @@ export const Database  = {
      * @returns 
      */
     async setScopesOfUser(id, scopes = []) {
-        return await users.updateOne({ _id: id }, { $set: { scopes: scopes } });
-    },
+        return await this.users.updateOne({ _id: id }, { $set: { scopes: scopes } });
+    }
     /**
      * Get all the scopes of a given user. Returns null if user does not exist.
      * 
@@ -202,8 +198,8 @@ export const Database  = {
      * @returns {Promise<User>}
      */
     async getUser(id) {
-        return await users.findOne({ _id: id});
-    },
+        return await this.users.findOne({ _id: id});
+    }
     /**
      * Get all the scopes of a given user. Returns null if user does not exist.
      * 
@@ -213,17 +209,17 @@ export const Database  = {
     async getScopesOfUser(id) {
         const user = await Database.getUser(id);
         if(user == null) return null;
-        return (await Database.getUser(id)).scopes;
-    },
+        return (await this.getUser(id)).scopes;
+    }
     /**
      * Get all the users in the database. This might be bad if the database is too large.
      * 
      * @returns {Promise<[User]>}
      */
     async getAllUsers() {
-        return (await users.find()).toArray();
+        return (await this.users.find()).toArray();
     }
-};
+}
 
 /**
  * Contains utitily functions to create and check expiration dates.
