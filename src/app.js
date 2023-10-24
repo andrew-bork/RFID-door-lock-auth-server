@@ -67,9 +67,9 @@ app.get("/:id/authenticate", async (req, res) => {
         res.status(400).send(`id "${id}" does not exists`);
         return;
     }
-    
-    // Check if user has scope.
     console.log(`"${user.name}" is trying to authenticate for "${scopeName}"`);
+
+    // Check if user has scope.
     const scope = user.scopes.find((scope) => (scope.scope === scopeName));
     if(scope == null) {
         console.log(`"${user.name}" does not have access to "${scopeName}".`);
@@ -202,7 +202,7 @@ app.listen(PORT, () => {
     console.log(`\thttp://127.0.0.1:${PORT}/:id/update-scopes?scope=[scope name]&expires_in=[days]`);
 
     console.log("Authenticate scope: ");
-    console.log(`\thttp://localhost:${PORT}/:id/authenticate?scope=[scope name]`);
-    console.log(`\thttp://127.0.0.1:${PORT}/:id/authenticate?scope=[scope name]`);
+    console.log(`\thttp://localhost:${PORT}/:id/authenticate?scope=[scope name]&expires_in=[days]`);
+    console.log(`\thttp://127.0.0.1:${PORT}/:id/authenticate?scope=[scope name]&expires_in=[days]`);
 
 });
